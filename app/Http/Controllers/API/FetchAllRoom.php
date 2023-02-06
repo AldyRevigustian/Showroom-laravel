@@ -39,7 +39,8 @@ class FetchAllRoom extends Controller
             }
         }
 
-        return response()->json(    $roomList
+        return response()->json(
+            $roomList
         );
     }
 
