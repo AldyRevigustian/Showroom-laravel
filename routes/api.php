@@ -60,6 +60,7 @@ Route::post('/login', function (Request $request) {
 
     $cookies_id = Session::get('cookies_id');
     $cookies_f = Session::get('cookies_f');
+
     $csrf = Session::get('csrf');
 
     $login = $client->post('https://www.showroom-live.com/user/login', [
@@ -68,48 +69,86 @@ Route::post('/login', function (Request $request) {
         ],
         'form_params' => [
             'csrf_token' => $csrf,
-            'account_id' => '21032005',
-            'password' => 'Akunbaru123',
+            'account_id' => $request->account_id,
+            'password' => $request->password,
             'captcha_word' => $request->captcha_word,
         ],
     ]);
 
-    return response()->json(
-        json_decode($login->getBody()->getContents())
-    );
+
+    $cookies_login_id = Session::get('cookies_login_id');
+
+    if ($login->getStatusCode() == '200') {
+        if (Session::get('cookies_login_id') == null) {
+            $cook = $login->getHeader('Set-Cookie');
+            $cookies_login = explode('; ', $cook[0])[0];
+
+            Session::put('cookies_login_id', $cookies_login);
+        }
+
+        return response()->json(
+            [
+                'user' => json_decode($login->getBody()->getContents()),
+                'session' => [
+                    'cookies sr_id' => $cookies_id,
+                    'cookies f' => $cookies_f,
+                    'csrf_token' => $csrf
+                ],
+                'new_cookie' => [
+                    'cookie_login_id' => $cookies_login_id,
+                ]
+            ]
+        );
+    }
 });
 
 Route::post('/comment', function (Request $request) {
-    if (Session::get('cookies') == null || Session::get('csrf') == null) {
-        newSession();
-    }
+    $live_id = $request->live_id;
+    $comment = $request->comment;
 
     $cookies_id = Session::get('cookies_id');
+    $cookies_login_id = Session::get('cookies_login_id');
+    $cookies_id = Session::get('cookies_login_id');
     $cookies_f = Session::get('cookies_f');
     $csrf = Session::get('csrf');
 
     $client = new Client();
+    $boundary = '----WebKitFormBoundarydMIgtiA2YeB1Z0kl';
+    $cookies = $cookies_f . '; ' . $cookies_id;
 
-    // dd($cookies_f. '; ' .$cookies_id);
+    $live_id = $request->live_id;
+    $comment = $request->comment;
 
+    $cookies = $cookies_login_id;
+    $csrf = $csrf;
+
+    $multipart_form = [
+        [
+            'name' => 'live_id',
+            'contents' => $live_id,
+        ],
+        [
+            'name' => 'comment',
+            'contents' => $comment,
+        ],
+        [
+            'name' => 'csrf_token',
+            'contents' => $csrf,
+        ],
+    ];
     $comment = $client->post('https://www.showroom-live.com/api/live/post_live_comment', [
         'headers' => [
-            'Content-Type'=> 'multipart/form-data; boundary=----WebKitFormBoundarydMIgtiA2YeB1Z0kl',
-            'Host'=> 'www.showroom-live.com',
-            'Cookie'=> 'f=8AE0877C-A551-11ED-8DA1-6E804D742A46; sr_id=hHtVDVLGbHlQXpoS53tmlpN26t2vb1xrwQsL2vN-NnvRup_bNkYts0P3C0x2HW0b',
-            'Content-Length'=> '383',
+            'Content-Type' => 'multipart/form-data; boundary=' . $boundary,
+            'Host' => 'www.showroom-live.com',
+            'Cookie' => $cookies,
+            'Content-Length' => 380,
         ],
 
-        'form_params' => [
-            'live_id' => '17182016',
-            'comment' => 'tesss',
-            'csrf_token' => 'KCX_pAiJT8hDUgF1FWY9cDI97QuH3ry8tlJgMvkq',
-        ],
+        'body' => new GuzzleHttp\Psr7\MultipartStream($multipart_form, $boundary), // here is all the magic
     ]);
 
 
     return response()->json(
-        // $comment;
         json_decode($comment->getBody()->getContents())
     );
 });
