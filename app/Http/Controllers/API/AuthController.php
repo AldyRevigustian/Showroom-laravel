@@ -19,7 +19,6 @@ class AuthController extends Controller
 
         $cook = $response->getHeader('set-cookie');
         $cookies_id = explode('; ', $cook[0])[0];
-        $cookies_f = explode('; ', $cook[1])[0];
 
         // Csrf
         $html = $response->getBody()->getContents();
@@ -31,10 +30,7 @@ class AuthController extends Controller
         });
         $csrf = $csrfs[0];
 
-        return ['cookies_id' => $cookies_id, 'cookies_f' => $cookies_f, 'csrf' => $csrf];
-        // Session::put('cookies_id', $cookies_id);
-        // Session::put('cookies_f', $cookies_f);
-        // Session::put('csrf', $csrf);
+        return ['cookies_id' => $cookies_id, 'csrf' => $csrf];
     }
 
     public function accountProfile($user_id)
@@ -47,17 +43,17 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $client = new Client();
-        // if (Session::get('cookies_id') == null || Session::get('csrf') == null) {
-        $sess = $this->newSession();
-        // }
 
-        // $cookies_id = Session::get('cookies_id');
-        // $cookies_f = Session::get('cookies_f');
-        // $csrf = Session::get('csrf');
+        $cookies_id = $request->cookies_sr_id;
+        $csrf = $request->csrf_token;
 
-        $cookies_id = $sess['cookies_id'];
-        $cookies_f = $sess['cookies_f'];
-        $csrf = $sess['csrf'];
+        // dd(!$cookies_id);
+
+        if (!$cookies_id) {
+            $sess = $this->newSession();
+            $cookies_id = $sess['cookies_id'];
+            $csrf = $sess['csrf'];
+        }
 
         $login = $client->post('https://www.showroom-live.com/user/login', [
             'headers' => [
@@ -75,16 +71,26 @@ class AuthController extends Controller
 
             $cook = $login->getHeader('Set-Cookie');
             $cookies_login = explode('; ', $cook[0])[0];
-            // Session::put('cookies_login_id', $cookies_login);
-
             $loginJson = json_decode($login->getBody()->getContents());
+
+            if ($loginJson->error ?? '') {
+                return response()->json(
+                    [
+                        'session' => [
+                            'cookies sr_id' => $cookies_id,
+                            'cookie_login_id' => $cookies_login,
+                            'csrf_token' => $csrf,
+                        ],
+                        'user' => $loginJson,
+                    ]
+                );
+            }
 
             return response()->json(
                 [
                     'session' => [
                         'cookies sr_id' => $cookies_id,
                         'cookie_login_id' => $cookies_login,
-                        'cookies f' => $cookies_f,
                         'csrf_token' => $csrf,
                     ],
                     'user' => $loginJson,

@@ -22,15 +22,25 @@ class LiveController extends Controller
         return true;
     }
 
+    function getDetail($room_id)
+    {
+        $res = Http::get("https://www.showroom-live.com/api/room/profile?room_id={$room_id}");
+        $resBod = json_decode($res->body());
+        return ['live_id' =>$resBod->live_id, 'room_url_key' => $resBod->room_url_key ];
+    }
+
     public function send_comment(Request $request)
     {
         $client = new Client();
 
-        $live_id = $request->live_id;
-        $comment = $request->comment;
+        $room_detail = $this->getDetail($request->room_id);
+
+        $live_id = $room_detail['live_id'];
+        $room_url_key = $room_detail['room_url_key'];
+
         $csrf = $request->csrf;
         $cookies_id = $request->cookies_id;
-        $room_url_key = $request->room_url_key;
+        $comment = $request->comment;
 
         $this->visitRoom($cookies_id, $room_url_key);
         $boundary = '----WebKitFormBoundarydMIgtiA2YeB1Z0kl';
