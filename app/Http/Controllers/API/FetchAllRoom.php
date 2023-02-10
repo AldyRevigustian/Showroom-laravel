@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class FetchAllRoom extends Controller
 {
     public $HOME = 'https://campaign.showroom-live.com/akb48_sr/data/room_status_list.json';
     public $BASE_URL = 'https://www.showroom-live.com/api';
-    public $ROOM = "https://www.showroom-live.com/aONpi/room";
+    public $ROOM = "https://www.showroom-live.com/api/room";
     public $LIVE = "https://www.showroom-live.com/api/live";
     public $ACADEMY = [
         '400710',
@@ -79,9 +78,9 @@ class FetchAllRoom extends Controller
         $res = Http::get($this->ROOM . '/profile?room_id=' . $room_id);
         $resBod = json_decode($res->body());
 
-        return response()->json([
+        return response()->json(
             $resBod
-        ]);
+        );
     }
 
     public function nextLive($room_id)
